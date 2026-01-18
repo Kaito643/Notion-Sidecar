@@ -121,7 +121,7 @@ class Diagnostics:
                 print_colored(" Failed", "red")
 
         if working_model:
-            clean_model = working_model.replace('models/', '')
+            clean_model = working_model.replace("models/", "")
             print_colored(
                 f"\n✅ RECOMMENDED FIX: Set GEMINI_MODEL={clean_model} in your .env file.",
                 "green",
