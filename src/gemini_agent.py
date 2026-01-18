@@ -1,17 +1,20 @@
-import google.generativeai as genai
 import json
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List
+
+import google.generativeai as genai
+
 from src.config import config
 from src.utils import setup_logger
 
 logger = setup_logger("GeminiAgent", config.LOG_LEVEL)
+
 
 class GeminiAgent:
     """
     AI Agent that analyzes user intents and Notion page content
     to decide on editing actions.
     """
-    
+
     def __init__(self) -> None:
         self._configure_genai()
         self.model_name = config.GEMINI_MODEL
@@ -24,7 +27,9 @@ class GeminiAgent:
             logger.error(f"Failed to configure Gemini API: {e}")
             raise
 
-    def analyze_and_act(self, user_query: str, current_blocks: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def analyze_and_act(
+        self, user_query: str, current_blocks: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """
         Main reasoning loop:
         1. Contextualize blocks
@@ -34,32 +39,37 @@ class GeminiAgent:
         """
         context_str = self._build_context(current_blocks)
         prompt = self._build_system_prompt(user_query, context_str)
-        
+
         try:
             response = self.model.generate_content(prompt)
             decision = self._parse_json_response(response.text)
             return decision
         except Exception as e:
             logger.error(f"Gemini reasoning failed: {e}")
-            
+
             # Additional debug info for model not found errors
             if "404" in str(e) and "not found" in str(e):
                 logger.info("Attempting to list available models...")
                 try:
                     for m in genai.list_models():
-                        if 'generateContent' in m.supported_generation_methods:
+                        if "generateContent" in m.supported_generation_methods:
                             logger.info(f"Available model: {m.name}")
                 except Exception as list_err:
                     logger.error(f"Could not list models: {list_err}")
 
-            return {"action": "CHAT", "text": f"I encountered an error with the AI model ({self.model_name}). Please check the logs for available models."}
+            return {
+                "action": "CHAT",
+                "text": f"I encountered an error with the AI model ({self.model_name}). Please check the logs for available models.",
+            }
 
     def _build_context(self, blocks: List[Dict[str, Any]]) -> str:
         """Create a numbered string representation of the page content"""
         context = []
         for idx, block in enumerate(blocks):
             # Include type to help agent decide if it should preserve or change it
-            context.append(f"[BLOCK_{idx}] (ID: {block['id']}, Type: {block['type']})\nContent: {block['content']}")
+            context.append(
+                f"[BLOCK_{idx}] (ID: {block['id']}, Type: {block['type']})\nContent: {block['content']}"
+            )
         return "\n\n".join(context)
 
     def _build_system_prompt(self, query: str, context: str) -> str:
@@ -108,6 +118,6 @@ class GeminiAgent:
         except json.JSONDecodeError:
             logger.error("Failed to parse JSON response from Gemini")
             return {
-                "action": "CHAT", 
-                "text": "I understood your request but failed to generate a structured action. Could you try rephrasing?"
+                "action": "CHAT",
+                "text": "I understood your request but failed to generate a structured action. Could you try rephrasing?",
             }

@@ -1,14 +1,14 @@
-import sys
 import argparse
-from typing import List, Dict, Any
+import sys
 
 from src.config import config
-from src.notion_client import NotionClient
 from src.gemini_agent import GeminiAgent
-from src.utils import setup_logger, print_colored
+from src.notion_client import NotionClient
+from src.utils import print_colored, setup_logger
 
 # Set up logging first
 logger = setup_logger("Main")
+
 
 def main() -> None:
     # 1. Parse Args
@@ -19,6 +19,7 @@ def main() -> None:
     # 1.1 Run Diagnostics if requested
     if args.debug:
         from src.diagnostics import Diagnostics
+
         Diagnostics().run_all()
         return
 
@@ -30,15 +31,15 @@ def main() -> None:
     try:
         print_colored("[INFO] Initializing Notion Client...", "cyan")
         notion = NotionClient()
-        
+
         print_colored("[INFO] Initializing Gemini Agent...", "cyan")
         agent = GeminiAgent()
-        
+
         print_colored("[SUCCESS] System Ready. Connected to Notion Page.", "green")
         print_colored(f"Target Page ID: {config.PAGE_ID}", "blue")
         print_colored("-" * 48, "white")
         print("Type 'exit' to quit, 'refresh' to reload content.\n")
-        
+
     except Exception as e:
         logger.critical(f"Initialization failed: {e}")
         sys.exit(1)
@@ -47,14 +48,14 @@ def main() -> None:
     while True:
         try:
             user_input = input("\nCommand: ").strip()
-            
+
             if not user_input:
                 continue
-                
+
             if user_input.lower() in ["exit", "quit", "q"]:
                 print_colored("[INFO] Exiting application...", "yellow")
                 break
-                
+
             if user_input.lower() == "refresh":
                 print_colored("[INFO] Refreshing page state...", "blue")
                 continue
@@ -71,21 +72,21 @@ def main() -> None:
             # 4.2 Agent Reasoning
             print("[INFO] Processing...", end="\r")
             decision = agent.analyze_and_act(user_input, blocks)
-            
+
             action = decision.get("action")
             text = decision.get("text", "")
-            
+
             # 4.3 Execution
             if action == "UPDATE":
                 idx = decision.get("target_block_index")
                 if idx is not None and 0 <= idx < len(blocks):
                     target_block = blocks[idx]
-                    target_id = target_block['id']
-                    target_type = decision.get("block_type", target_block['type'])
-                    
+                    target_id = target_block["id"]
+                    target_type = decision.get("block_type", target_block["type"])
+
                     print_colored(f"[INFO] Updating block [{idx}]...", "cyan")
                     success = notion.update_block(target_id, text, block_type=target_type)
-                    
+
                     if success:
                         print_colored("[SUCCESS] Update successful.", "green")
                     else:
@@ -97,7 +98,7 @@ def main() -> None:
                 print_colored("[INFO] Appending new block...", "cyan")
                 block_type = decision.get("block_type", "paragraph")
                 success = notion.append_block(config.PAGE_ID, text, block_type=block_type)
-                
+
                 if success:
                     print_colored("[SUCCESS] Appended successfully.", "green")
                 else:
@@ -107,11 +108,11 @@ def main() -> None:
                 idx = decision.get("target_block_index")
                 if idx is not None and 0 <= idx < len(blocks):
                     target_block = blocks[idx]
-                    target_id = target_block['id']
-                    
+                    target_id = target_block["id"]
+
                     print_colored(f"[INFO] Deleting block [{idx}]...", "cyan")
                     success = notion.delete_block(target_id)
-                    
+
                     if success:
                         print_colored("[SUCCESS] Block deleted.", "green")
                     else:
@@ -123,22 +124,22 @@ def main() -> None:
                 idx = decision.get("target_block_index")
                 if idx is not None and 0 <= idx < len(blocks):
                     target_block = blocks[idx]
-                    target_id = target_block['id']
+                    target_id = target_block["id"]
                     block_type = decision.get("block_type", "paragraph")
-                    
+
                     print_colored(f"[INFO] Inserting block after [{idx}]...", "cyan")
                     success = notion.insert_block_after(target_id, text, block_type=block_type)
-                    
+
                     if success:
                         print_colored("[SUCCESS] Block inserted.", "green")
                     else:
                         print_colored("[ERROR] Insert failed.", "red")
                 else:
                     print_colored(f"[ERROR] Invalid block index for INSERT: {idx}", "red")
-            
+
             elif action == "CHAT":
                 print_colored(f"\n[AGENT] {text}", "white")
-            
+
             else:
                 print_colored(f"[WARNING] Unknown action: {action}", "yellow")
 
@@ -147,6 +148,7 @@ def main() -> None:
             break
         except Exception as e:
             logger.error(f"An unexpected error occurred: {e}")
+
 
 if __name__ == "__main__":
     main()

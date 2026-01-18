@@ -1,14 +1,14 @@
 import os
-import sys
-from typing import Optional
+
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
 
+
 class Config:
     """Application configuration and validation"""
-    
+
     @property
     def NOTION_TOKEN(self) -> str:
         token = os.getenv("NOTION_TOKEN")
@@ -52,6 +52,7 @@ class Config:
     def _error(self, message: str) -> None:
         """Raise error with helpful message"""
         raise ValueError(f"{message}\nPlease check your .env file or environment variables.")
+
 
 # Singleton instance
 config = Config()
