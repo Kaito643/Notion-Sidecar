@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "notion-sidecar"
+version = "0.1.0"
+description = "Autonomous agent integrating Notion API with Gemini AI for terminal-based blog editing"
+readme = "README.md"
+authors = [{ name = "Umut Yildiz", email = "umut@example.com" }]
+license = { file = "LICENSE" }
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+    "google-generativeai>=0.3.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/umutyildiz/notion-sidecar"
+Repository = "https://github.com/umutyildiz/notion-sidecar"
+Issues = "https://github.com/umutyildiz/notion-sidecar/issues"
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+include = '\.pyi?$'
+
+[tool.ruff]
+select = ["E", "F", "I", "N", "W", "B"]
+ignore = []
+fixable = ["ALL"]
+line-length = 100
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --cov=src"
+testpaths = [
+    "tests",
+]

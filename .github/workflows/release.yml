@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Extract Release Notes
+        id: changelog
+        shell: bash
+        run: |
+          # Clean version number (remove 'v' prefix if present)
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "Extracting changelog for version: $VERSION"
+          
+          # Extract content for this version from CHANGELOG.md
+          # Matches headers like "## [1.0.0]" or "## 1.0.0"
+          CHANGELOG=$(awk -v ver="$VERSION" '
+            $0 ~ "^## \\[?" ver "\\]?" {flag=1; next} 
+            /^## / {flag=0} 
+            flag
+          ' CHANGELOG.md)
+          
+          # Output to GitHub Actions
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
