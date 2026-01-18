@@ -14,6 +14,7 @@ class Config:
         token = os.getenv("NOTION_TOKEN")
         if not token:
             self._error("NOTION_TOKEN environment variable is not set.")
+        assert token is not None
         return token
 
     @property
@@ -21,6 +22,7 @@ class Config:
         page_id = os.getenv("PAGE_ID")
         if not page_id:
             self._error("PAGE_ID environment variable is not set.")
+        assert page_id is not None
         return page_id
 
     @property
@@ -28,6 +30,7 @@ class Config:
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             self._error("GEMINI_API_KEY environment variable is not set.")
+        assert api_key is not None
         return api_key
 
     @property

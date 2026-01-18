@@ -12,7 +12,7 @@ class Diagnostics:
     def __init__(self) -> None:
         self.api_key = config.gemini_api_key
 
-    def run_all(self):
+    def run_all(self) -> None:
         print_colored("\n🔍 Starting System Diagnostics...", "cyan")
         print_colored("--------------------------------", "white")
 
@@ -65,7 +65,7 @@ class Diagnostics:
             print_colored(f"  Error: {e}", "white")
             return []
 
-    def _test_default_model(self, available_models: List[str]):
+    def _test_default_model(self, available_models: List[str]) -> None:
         print("\n[3/3] Finding a working model...")
 
         # Priority list of models to try
@@ -77,14 +77,6 @@ class Diagnostics:
             "gemini-1.5-pro",
             "gemini-1.5-flash",
         ]
-
-        available_models = []
-        try:
-            for m in genai.list_models():
-                if "generateContent" in m.supported_generation_methods:
-                    available_models.append(m.name)
-        except Exception:
-            pass
 
         # Add any "flash" models found dynamically
         for m in available_models:

@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 
 import google.generativeai as genai
 
@@ -117,7 +117,7 @@ class GeminiAgent:
         try:
             # Strip potential markdown code blocks
             clean_text = response_text.replace("```json", "").replace("```", "").strip()
-            return json.loads(clean_text)
+            return cast(Dict[str, Any], json.loads(clean_text))
         except json.JSONDecodeError:
             logger.error("Failed to parse JSON response from Gemini")
             return {
