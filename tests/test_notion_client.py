@@ -92,7 +92,7 @@ def test_api_rate_limit_retry(client):
     resp_200.status_code = 200
 
     with patch.object(client.session, "request", side_effect=[resp_429, resp_200]) as mock_req:
-        with patch("time.sleep") as mock_sleep:  # Don't actually wait
+        with patch("time.sleep"):  # Don't actually wait
             client._make_request("GET", "url")
 
             assert mock_req.call_count == 2

@@ -36,7 +36,7 @@ def main() -> None:
         agent = GeminiAgent()
 
         print_colored("[SUCCESS] System Ready. Connected to Notion Page.", "green")
-        print_colored(f"Target Page ID: {config.PAGE_ID}", "blue")
+        print_colored(f"Target Page ID: {config.page_id}", "blue")
         print_colored("-" * 48, "white")
         print("Type 'exit' to quit, 'refresh' to reload content.\n")
 
@@ -62,7 +62,7 @@ def main() -> None:
 
             # 4.1 Fetch Current State
             print("[INFO] Reading page content...", end="\r")
-            blocks = notion.get_page_blocks(config.PAGE_ID)
+            blocks = notion.get_page_blocks(config.page_id)
             if not blocks:
                 print_colored("[WARNING] Page is empty or could not be read.", "yellow")
                 # We continue anyway to allow the agent to potentially APPEND to an empty page
@@ -97,7 +97,7 @@ def main() -> None:
             elif action == "APPEND":
                 print_colored("[INFO] Appending new block...", "cyan")
                 block_type = decision.get("block_type", "paragraph")
-                success = notion.append_block(config.PAGE_ID, text, block_type=block_type)
+                success = notion.append_block(config.page_id, text, block_type=block_type)
 
                 if success:
                     print_colored("[SUCCESS] Appended successfully.", "green")

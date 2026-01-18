@@ -9,8 +9,8 @@ logger = setup_logger("Diagnostics", "INFO")
 
 
 class Diagnostics:
-    def __init__(self):
-        self.api_key = config.GEMINI_API_KEY
+    def __init__(self) -> None:
+        self.api_key = config.gemini_api_key
 
     def run_all(self):
         print_colored("\n🔍 Starting System Diagnostics...", "cyan")
@@ -69,61 +69,61 @@ class Diagnostics:
         print("\n[3/3] Finding a working model...")
 
         # Priority list of models to try
-        candidates = [
-            config.GEMINI_MODEL,  # Try configured one first
-            "gemini-1.5-flash",
+        models_to_try = [
+            config.gemini_model,  # Try configured one first
+            "gemini-2.0-flash-exp",
             "gemini-2.0-flash",
             "gemini-pro",
             "gemini-1.5-pro",
-            "gemini-2.0-flash-exp",
+            "gemini-1.5-flash",
         ]
 
-        # Add any other available models that look promising
+        available_models = []
+        try:
+            for m in genai.list_models():
+                if "generateContent" in m.supported_generation_methods:
+                    available_models.append(m.name)
+        except Exception:
+            pass
+
+        # Add any "flash" models found dynamically
         for m in available_models:
             clean_name = m.replace("models/", "")
-            if clean_name not in candidates and "flash" in clean_name:
-                candidates.append(clean_name)
+            if clean_name not in models_to_try and "flash" in clean_name:
+                models_to_try.append(clean_name)
 
         tested = set()
         working_model = None
 
-        for model_name in candidates:
+        for model_name in models_to_try:
             # Handle 'models/' prefix loose matching
             target = model_name
-            if f"models/{model_name}" in available_models:
-                target = f"models/{model_name}"
-            elif (
-                model_name not in available_models
+            if (
+                not model_name.startswith("models/")
                 and f"models/{model_name}" not in available_models
             ):
-                # Skip if not in the user's available list at all (unless it's an alias that might resolve)
-                continue
+                # Skip if not in the user's available list at all unless it's an alias
+                # But allow it if we are just trying blind
+                pass
 
             if target in tested:
                 continue
             tested.add(target)
 
-            print(f"  Testing '{target}'...", end=" ")
+            print(f"  Testing '{target}'...", end="")
             try:
                 model = genai.GenerativeModel(target)
-                response = model.generate_content("Hello")
-
-                if response and response.text:
-                    print_colored("OK", "green")
-                    working_model = target
-                    break  # Found one!
-                else:
-                    print_colored("Empty Response", "yellow")
-            except Exception as e:
-                if "429" in str(e):
-                    print_colored("Quota Exceeded", "yellow")
-                else:
-                    print_colored("Failed", "red")
-                    # logger.debug(f"Error testing {target}: {e}")
+                model.generate_content("Hello")
+                print_colored(" OK", "green")
+                working_model = target
+                break
+            except Exception:
+                print_colored(" Failed", "red")
 
         if working_model:
+            clean_model = working_model.replace('models/', '')
             print_colored(
-                f"\n✅ RECOMMENDED FIX: Set GEMINI_MODEL={working_model.replace('models/', '')} in your .env file.",
+                f"\n✅ RECOMMENDED FIX: Set GEMINI_MODEL={clean_model} in your .env file.",
                 "green",
             )
             # verification logic

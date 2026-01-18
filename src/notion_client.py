@@ -6,7 +6,7 @@ import requests
 from src.config import config
 from src.utils import setup_logger
 
-logger = setup_logger("NotionClient", config.LOG_LEVEL)
+logger = setup_logger("NotionClient", config.log_level)
 
 
 class NotionClient:
@@ -19,7 +19,7 @@ class NotionClient:
 
     def __init__(self) -> None:
         self.headers = {
-            "Authorization": f"Bearer {config.NOTION_TOKEN}",
+            "Authorization": f"Bearer {config.notion_token}",
             "Content-Type": "application/json",
             "Notion-Version": "2022-06-28",
         }
@@ -107,43 +107,16 @@ class NotionClient:
     def insert_block_after(self, block_id: str, text: str, block_type: str = "paragraph") -> bool:
         """
         Insert a block after a specific block_id.
-        Notion API 'append' on a block appends to its children (if it can have children).
-        To insert *after*, we typically append to the parent.
-        However, the Notion API `blocks/{id}/children` endpoint appends to the *bottom* of the children list.
-        It has an `after` parameter in the append endpoint now? No, the documentation says "Append block children".
+        Notion API 'append' adds to children. To insert *after*, we technically need
+        to append to the parent with the 'after' parameter.
 
-        Wait, Notion API supports `after` in the Append block children payload since version 2022-06-28?
-        Actually, looking at the docs, `Append block children` adds to the end.
-        To insert in the middle, we have to use `after` parameter in the `children` array?
-        No, Notion API is a bit restrictive here.
-        Actually, the `Append block children` endpoint appends content to the `block_id`.
-        If we want to insert AFTER a block at the same level, we need the parent ID.
-        But since we are flattening the list in `get_page_blocks`, we might lose track of the parent structure slightly if nested.
-        However, for the main list, the parent is the Page ID.
-        The Notion API documentation says: "There is currently no way to insert a block at a specific order among other blocks."
-        Wait, `Append block children` now supports `after`?
-        Let me double check.
-        Ah, the `Append block children` endpoint sends a body with `children`.
-        There is NO standard way to insert *between* blocks easily via the API without rewriting the page or using the `after` parameter if it exists.
-        Wait, recent API versions added `after`.
-        Let's check if the current version `2022-06-28` supports it.
-        Actually, it seems `after` is supported in `Append block children`.
-        "The `after` parameter... the ID of the existing block that the new block should be appended after".
-        Let's assume this exists for `Append block children`.
-        Wait, the official docs say: "https://developers.notion.com/reference/patch-block-children"
-        Body params: `children`, `after` (optional).
-        Yes! "The ID of the existing block that the new block should be appended after."
+        The 'after' parameter allows us to specify the ID of the existing block
+        that the new block should be appended after.
 
-        So we need the Parent ID. But `get_page_blocks` is getting children of the PAGE.
-        So to insert after Block A (which is a child of Page P), we call `append_block(Page P, children=[...], after=Block A)`.
-
-        So `insert_block_after` needs the `parent_id` (the page id) and the `after_block_id`.
-        But `analyze_and_act` only knows about the list of blocks.
-        We can pass `config.PAGE_ID` as the parent for now, assuming a flat structure for the blog post.
+        Since we treat the page as a flat list in this agent, we assume the parent
+        is the Page ID.
         """
-        # For simplicity, we assume we are inserting into the main Page ID list
-        # If we support nested blocks later, we'd need to track parent IDs in the block analysis.
-        url = f"{self.BASE_URL}/blocks/{config.PAGE_ID}/children"
+        url = f"{self.BASE_URL}/blocks/{config.page_id}/children"
 
         payload = {
             "children": [

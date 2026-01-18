@@ -6,7 +6,7 @@ import google.generativeai as genai
 from src.config import config
 from src.utils import setup_logger
 
-logger = setup_logger("GeminiAgent", config.LOG_LEVEL)
+logger = setup_logger("GeminiAgent", config.log_level)
 
 
 class GeminiAgent:
@@ -17,12 +17,12 @@ class GeminiAgent:
 
     def __init__(self) -> None:
         self._configure_genai()
-        self.model_name = config.GEMINI_MODEL
+        self.model_name = config.gemini_model
         self.model = genai.GenerativeModel(self.model_name)
 
     def _configure_genai(self) -> None:
         try:
-            genai.configure(api_key=config.GEMINI_API_KEY)
+            genai.configure(api_key=config.gemini_api_key)
         except Exception as e:
             logger.error(f"Failed to configure Gemini API: {e}")
             raise
@@ -59,7 +59,10 @@ class GeminiAgent:
 
             return {
                 "action": "CHAT",
-                "text": f"I encountered an error with the AI model ({self.model_name}). Please check the logs for available models.",
+                "text": (
+                    f"I encountered an error with the AI model ({self.model_name}). "
+                    "Please check the logs for available models."
+                ),
             }
 
     def _build_context(self, blocks: List[Dict[str, Any]]) -> str:
@@ -67,23 +70,22 @@ class GeminiAgent:
         context = []
         for idx, block in enumerate(blocks):
             # Include type to help agent decide if it should preserve or change it
-            context.append(
-                f"[BLOCK_{idx}] (ID: {block['id']}, Type: {block['type']})\nContent: {block['content']}"
-            )
+            b_info = f"[BLOCK_{idx}] (ID: {block['id']}, Type: {block['type']})"
+            context.append(f"{b_info}\nContent: {block['content']}")
         return "\n\n".join(context)
 
     def _build_system_prompt(self, query: str, context: str) -> str:
         return f"""
-        You are an intelligent Notion Blog Editor Agent. 
-        Your goal is to help the user edit, write, or refine their blog post based on their natural language commands.
-        
+        You are an intelligent Notion Blog Editor Agent.
+        Your goal is to help the user edit, write, or refine their blog post.
+
         CURRENT PAGE CONTENT (Indexed Blocks):
         ----------------------------------------
         {context}
         ----------------------------------------
-        
+
         USER COMMAND: "{query}"
-        
+
         INSTRUCTIONS:
         1. Analyze the user's command and the current content.
         2. Decide on ONE of the following actions:
@@ -91,21 +93,22 @@ class GeminiAgent:
            - 'APPEND': Add a new block to the end of the page.
            - 'DELETE': Remove a specific block.
            - 'INSERT': Insert a new block AFTER a specific block.
-           - 'CHAT': Reply to the user if no editing is needed (e.g. they asked a question).
-           
-        3. IMPORTANT: working with block indexes (0, 1, 2...) from the context above.
-        
+           - 'CHAT': Reply to the user if no editing is needed.
+
+        3. IMPORTANT: Work with block indexes (0, 1, 2...) from the context above.
+
         4. LANGUAGE:
-        - The user may write in any language, but unless explicitly asked otherwise, generate content and CHAT responses in English.
-        
+        - The user may write in any language.
+        - Unless explicitly asked, generate content and CHAT responses in English.
+
         5. OUTPUT FORMAT:
-        Return ONLY valid JSON. Do not include markdown formatting like ```json.
-        
+        Return ONLY valid JSON. Do not include markdown formatting.
+
         {{
             "action": "UPDATE" | "APPEND" | "DELETE" | "INSERT" | "CHAT",
             "target_block_index": <int> (Required for UPDATE, DELETE, INSERT),
             "text": "<new_content_or_chat_reply>",
-            "block_type": "<paragraph|heading_1|heading_2|heading_3|bulleted_list_item|code|to_do|quote|callout>" (Optional, matches target or new type)
+            "block_type": "<paragraph|heading_1|heading_2|...>" (Optional)
         }}
         """
 
@@ -119,5 +122,8 @@ class GeminiAgent:
             logger.error("Failed to parse JSON response from Gemini")
             return {
                 "action": "CHAT",
-                "text": "I understood your request but failed to generate a structured action. Could you try rephrasing?",
+                "text": (
+                    "I understood your request but failed to generate a structured action. "
+                    "Could you try rephrasing?"
+                ),
             }

@@ -33,10 +33,12 @@ target-version = ['py310']
 include = '\.pyi?$'
 
 [tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "B"]
 ignore = []
 fixable = ["ALL"]
-line-length = 100
 
 [tool.mypy]
 python_version = "3.10"
