@@ -15,9 +15,10 @@ class GeminiAgent:
     to decide on editing actions.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, model_name: str = "", debug: bool = False) -> None:
+        self.debug = debug
         self._configure_genai()
-        self.model_name = config.gemini_model
+        self.model_name = model_name or config.gemini_model
         self.model = genai.GenerativeModel(self.model_name)
 
     def _configure_genai(self) -> None:
@@ -45,25 +46,9 @@ class GeminiAgent:
             decision = self._parse_json_response(response.text)
             return decision
         except Exception as e:
-            logger.error(f"Gemini reasoning failed: {e}")
-
-            # Additional debug info for model not found errors
-            if "404" in str(e) and "not found" in str(e):
-                logger.info("Attempting to list available models...")
-                try:
-                    for m in genai.list_models():
-                        if "generateContent" in m.supported_generation_methods:
-                            logger.info(f"Available model: {m.name}")
-                except Exception as list_err:
-                    logger.error(f"Could not list models: {list_err}")
-
-            return {
-                "action": "CHAT",
-                "text": (
-                    f"I encountered an error with the AI model ({self.model_name}). "
-                    "Please check the logs for available models."
-                ),
-            }
+            if self.debug:
+                logger.error(f"Gemini reasoning failed: {e}")
+            raise e
 
     def _build_context(self, blocks: List[Dict[str, Any]]) -> str:
         """Create a numbered string representation of the page content"""

@@ -1,4 +1,5 @@
 import os
+from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
@@ -6,8 +7,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+@dataclass
 class Config:
     """Application configuration and validation"""
+
+    def reload(self) -> None:
+        """Reload environment variables from .env file"""
+        load_dotenv(override=True)
 
     @property
     def notion_token(self) -> str:
@@ -41,7 +47,7 @@ class Config:
     def log_level(self) -> str:
         return os.getenv("LOG_LEVEL", "INFO")
 
-    def validate(self) -> bool:
+    def validate(self, print_errors: bool = False) -> bool:
         """Validate all required configuration is present"""
         try:
             _ = self.notion_token
@@ -49,7 +55,8 @@ class Config:
             _ = self.gemini_api_key
             return True
         except ValueError as e:
-            print(f"Configuration Error: {e}")
+            if print_errors:
+                print(f"Configuration Error: {e}")
             return False
 
     def _error(self, message: str) -> None:

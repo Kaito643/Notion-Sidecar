@@ -1,3 +1,4 @@
+from typing import Generator
 from unittest.mock import Mock, patch
 
 import pytest
@@ -6,22 +7,28 @@ from src.agent import main
 
 
 @pytest.fixture
-def mock_clients():
+def mock_clients() -> Generator[tuple[Mock, Mock], None, None]:
     with (
         patch("src.agent.NotionClient") as mock_notion_cls,
         patch("src.agent.GeminiAgent") as mock_gemini_cls,
+        patch("src.menu.InteractiveMenu") as mock_menu_cls,
     ):
-
         mock_notion = Mock()
         mock_notion_cls.return_value = mock_notion
 
         mock_gemini = Mock()
         mock_gemini_cls.return_value = mock_gemini
 
+        # Configure Menu Mock
+        mock_menu = Mock()
+        mock_menu_cls.return_value = mock_menu
+        # Return (run_agent=True, selected_model="gemini-fake")
+        mock_menu.run.return_value = (True, "gemini-fake")
+
         yield mock_notion, mock_gemini
 
 
-def test_e2e_update_flow(mock_clients):
+def test_e2e_update_flow(mock_clients: tuple[Mock, Mock]) -> None:
     mock_notion, mock_gemini = mock_clients
 
     # 1. Setup Mock Data
@@ -46,7 +53,6 @@ def test_e2e_update_flow(mock_clients):
             "os.environ", {"NOTION_TOKEN": "fake", "PAGE_ID": "fake", "GEMINI_API_KEY": "fake"}
         ),
     ):
-
         try:
             main()
         except SystemExit:
@@ -58,7 +64,7 @@ def test_e2e_update_flow(mock_clients):
     mock_notion.update_block.assert_called_with("b1", "Updated text", block_type="paragraph")
 
 
-def test_e2e_delete_flow(mock_clients):
+def test_e2e_delete_flow(mock_clients: tuple[Mock, Mock]) -> None:
     mock_notion, mock_gemini = mock_clients
 
     mock_notion.get_page_blocks.return_value = [
@@ -84,7 +90,7 @@ def test_e2e_delete_flow(mock_clients):
     mock_notion.delete_block.assert_called_with("b1")
 
 
-def test_e2e_insert_flow(mock_clients):
+def test_e2e_insert_flow(mock_clients: tuple[Mock, Mock]) -> None:
     mock_notion, mock_gemini = mock_clients
 
     mock_notion.get_page_blocks.return_value = [

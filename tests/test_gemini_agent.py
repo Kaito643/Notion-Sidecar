@@ -1,3 +1,4 @@
+from typing import Generator
 from unittest.mock import Mock, patch
 
 import pytest
@@ -6,7 +7,7 @@ from src.gemini_agent import GeminiAgent
 
 
 @pytest.fixture
-def mock_genai_model():
+def mock_genai_model() -> Generator[Mock, None, None]:
     with patch("src.gemini_agent.genai.GenerativeModel") as mock_model_cls:
         mock_instance = Mock()
         mock_model_cls.return_value = mock_instance
@@ -14,13 +15,13 @@ def mock_genai_model():
 
 
 @pytest.fixture
-def agent(mock_genai_model):
+def agent(mock_genai_model: Mock) -> GeminiAgent:
     with patch.dict("os.environ", {"GEMINI_API_KEY": "fake_key", "GEMINI_MODEL": "test-model"}):
         with patch("src.gemini_agent.genai.configure"):
             return GeminiAgent()
 
 
-def test_analyze_and_act_update(agent, mock_genai_model):
+def test_analyze_and_act_update(agent: GeminiAgent, mock_genai_model: Mock) -> None:
     # Mock LLM response
     mock_response = Mock()
     mock_response.text = '{"action": "UPDATE", "target_block_index": 0, "text": "New content"}'
@@ -34,7 +35,7 @@ def test_analyze_and_act_update(agent, mock_genai_model):
     assert decision["text"] == "New content"
 
 
-def test_analyze_and_act_json_cleanup(agent, mock_genai_model):
+def test_analyze_and_act_json_cleanup(agent: GeminiAgent, mock_genai_model: Mock) -> None:
     # Mock LLM response with markdown blocks
     mock_response = Mock()
     mock_response.text = '```json\n{"action": "CHAT", "text": "Hello"}\n```'
@@ -46,17 +47,15 @@ def test_analyze_and_act_json_cleanup(agent, mock_genai_model):
     assert decision["text"] == "Hello"
 
 
-def test_analyze_and_act_error_handling(agent, mock_genai_model):
+def test_analyze_and_act_error_handling(agent: GeminiAgent, mock_genai_model: Mock) -> None:
     # Mock Error
     mock_genai_model.generate_content.side_effect = Exception("API Error")
 
-    decision = agent.analyze_and_act("Hi", [])
-
-    assert decision["action"] == "CHAT"
-    assert "error" in decision["text"].lower()
+    with pytest.raises(Exception, match="API Error"):
+        agent.analyze_and_act("Hi", [])
 
 
-def test_build_context(agent):
+def test_build_context(agent: GeminiAgent) -> None:
     blocks = [
         {"id": "b1", "type": "paragraph", "content": "First para"},
         {"id": "b2", "type": "heading_1", "content": "Title"},

@@ -6,7 +6,7 @@ from src.notion_client import NotionClient
 
 
 @pytest.fixture
-def mock_response():
+def mock_response() -> Mock:
     resp = Mock()
     resp.status_code = 200
     resp.json.return_value = {}
@@ -14,12 +14,12 @@ def mock_response():
 
 
 @pytest.fixture
-def client():
+def client() -> NotionClient:
     with patch.dict("os.environ", {"NOTION_TOKEN": "fake_token"}):
         return NotionClient()
 
 
-def test_get_page_blocks_success(client, mock_response):
+def test_get_page_blocks_success(client: NotionClient, mock_response: Mock) -> None:
     # Mock data
     mock_data = {
         "results": [
@@ -43,7 +43,7 @@ def test_get_page_blocks_success(client, mock_response):
         mock_req.assert_called_once()
 
 
-def test_get_page_blocks_empty(client, mock_response):
+def test_get_page_blocks_empty(client: NotionClient, mock_response: Mock) -> None:
     mock_response.json.return_value = {"results": [], "has_more": False}
 
     with patch.object(client.session, "request", return_value=mock_response):
@@ -51,19 +51,19 @@ def test_get_page_blocks_empty(client, mock_response):
         assert len(blocks) == 0
 
 
-def test_update_block_success(client, mock_response):
+def test_update_block_success(client: NotionClient, mock_response: Mock) -> None:
     with patch.object(client.session, "request", return_value=mock_response):
         success = client.update_block("block-1", "New text")
         assert success is True
 
 
-def test_append_block_success(client, mock_response):
+def test_append_block_success(client: NotionClient, mock_response: Mock) -> None:
     with patch.object(client.session, "request", return_value=mock_response):
         success = client.append_block("page-id", "New paragraph")
         assert success is True
 
 
-def test_delete_block_success(client, mock_response):
+def test_delete_block_success(client: NotionClient, mock_response: Mock) -> None:
     with patch.object(client.session, "request", return_value=mock_response) as mock_req:
         success = client.delete_block("block-1")
         assert success is True
@@ -72,7 +72,7 @@ def test_delete_block_success(client, mock_response):
         )
 
 
-def test_insert_block_after_success(client, mock_response):
+def test_insert_block_after_success(client: NotionClient, mock_response: Mock) -> None:
     with patch.dict("os.environ", {"PAGE_ID": "test-page-id"}):
         with patch.object(client.session, "request", return_value=mock_response) as mock_req:
             success = client.insert_block_after("block-1", "Inserted Text")
@@ -82,7 +82,7 @@ def test_insert_block_after_success(client, mock_response):
             assert call_args.kwargs["json"]["after"] == "block-1"
 
 
-def test_api_rate_limit_retry(client):
+def test_api_rate_limit_retry(client: NotionClient) -> None:
     # Mock 429 then 200
     resp_429 = Mock()
     resp_429.status_code = 429
